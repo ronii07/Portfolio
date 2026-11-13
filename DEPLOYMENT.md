@@ -1,122 +1,31 @@
-# Vercel Deployment Guide
+﻿# Vercel Deployment Guide
 
-This portfolio is configured for deployment on Vercel. The project now includes a static HTML version (`index.html`) which is much easier to deploy than the Laravel version.
+The site is a Laravel app (Blade) served on Vercel through the community `vercel-php` runtime.
 
-## Two Deployment Options
+## How it is wired
 
-### Option 1: Static HTML Version (Recommended - Easiest)
+| File | Purpose |
+| --- | --- |
+| `vercel.json` | Uses `vercel-php` for `api/index.php`; static assets (`css`, `js`, images, `favicon.svg`) are served from `public/`; every other URL goes to Laravel. Laravel caches/compiled views are redirected to `/tmp` (Vercel's filesystem is read-only). |
+| `api/index.php` | Serverless entry point that boots `public/index.php`. |
+| `.vercelignore` | Keeps `vendor`, `node_modules`, `.env`, tests, docs and the legacy static `index.html` out of the upload. `composer install` runs on Vercel. |
+| `bootstrap/app.php` | Trusts Vercel's proxy headers so asset links are generated as `https://`. |
 
-The `index.html` file is a complete, self-contained portfolio with all styling included. This is the easiest way to deploy to Vercel.
+The CSS/JS used by the site are plain files in `public/` (no Vite build is needed).
 
-#### Deployment Steps:
+## Deploy
 
-1. **Deploy via Vercel CLI:**
-   ```bash
-   npm install -g vercel
-   vercel login
-   vercel
-   ```
+1. Push to GitHub, then in the Vercel dashboard choose **Add New Project** and import the repo.
+2. Framework Preset: **Other**. Leave Build, Output and Install commands empty.
+3. Add these **Environment Variables** (Settings > Environment Variables):
+   - `APP_KEY` : run `php artisan key:generate --show` locally and paste the `base64:...` value (required; never commit it)
+   - `APP_URL` : your Vercel URL, e.g. `https://your-project.vercel.app` (optional)
+4. Deploy. Every push to `main` redeploys automatically.
 
-2. **Deploy via Git Integration:**
-   - Push your code to GitHub/GitLab/Bitbucket
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "Add New Project"
-   - Import your repository
-   - Configure the project:
-     - Framework Preset: Other
-     - Root Directory: `./`
-     - Build Command: (leave empty)
-     - Output Directory: `./`
-   - Click "Deploy"
+Or with the CLI: `npm i -g vercel`, `vercel login`, `vercel --prod`.
 
-3. **No Environment Variables Needed:**
-   The static HTML version doesn't require any environment variables.
+## Notes
 
-### Option 2: Laravel Version (Advanced)
-
-If you prefer to deploy the Laravel version with PHP backend:
-
-#### Prerequisites:
-- A Vercel account (free account works)
-- Git repository with this code
-- PHP runtime support (Vercel supports PHP)
-
-#### Deployment Steps:
-
-1. **Prepare Environment Variables:**
-   - `APP_ENV`: `production`
-   - `APP_DEBUG`: `false`
-   - `APP_KEY`: Generate using `php artisan key:generate`
-   - `APP_URL`: Your Vercel deployment URL
-
-2. **Deploy via Vercel CLI:**
-   ```bash
-   npm install -g vercel
-   vercel login
-   vercel
-   ```
-
-3. **Configure during deployment:**
-   - Set up and deploy: `Yes`
-   - Scope: Select your username/team
-   - Project name: Enter desired project name
-   - Directory: `./`
-   - Override settings: Select defaults
-
-## File Structure for Deployment
-
-- `index.html` - Static HTML version (recommended for easy deployment)
-- `vercel.json` - Vercel configuration
-- `.vercelignore` - Files to exclude from deployment
-- `public/` - Laravel public directory (for Laravel deployment)
-- `resources/` - Laravel resources (for Laravel deployment)
-
-## Post-Deployment Steps
-
-1. **Test the Application:** Visit your deployed URL to ensure everything works correctly.
-
-2. **Configure Custom Domain** (optional):
-   - Go to project settings in Vercel
-   - Add your custom domain
-   - Update DNS records as instructed
-
-## Troubleshooting
-
-### Static HTML Version Issues:
-- Ensure `index.html` is in the root directory
-- Check that image paths are correct (relative to `index.html`)
-- Verify the image file exists in the `image/` directory
-
-### Laravel Version Issues:
-- Ensure `vercel.json` is configured correctly
-- Check environment variables are set properly
-- Verify Composer dependencies are installed
-- Check Vercel logs for specific error messages
-
-## Additional Resources
-
-- [Vercel Documentation](https://vercel.com/docs)
-- [Vercel CLI Documentation](https://vercel.com/docs/cli)
-- [Static Site Deployment Guide](https://vercel.com/docs/deployments/overview)
-
-## Customization
-
-### For Static HTML Version:
-- Edit `index.html` directly to modify content
-- CSS is embedded in the `<style>` tag
-- Image paths should be relative to the HTML file
-
-### For Laravel Version:
-- Modify `vercel.json` to customize build settings
-- Update environment variables in Vercel dashboard
-- Modify Laravel resources as needed
-
-## Recommendation
-
-For the easiest deployment experience, use the static HTML version (`index.html`). It requires:
-- No build process
-- No environment variables
-- No PHP runtime
-- Instant deployment
-
-The Laravel version is available if you need server-side functionality in the future.
+- Editing styles: change `resources/css/app.css`, then copy it to `public/css/app.css` (the page loads the `public` copy).
+- There is no database; sessions use cookies and the cache is in memory.
+- `index.html` is an older standalone copy of the page and is not deployed.
